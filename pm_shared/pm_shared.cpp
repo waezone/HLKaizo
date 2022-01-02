@@ -2609,7 +2609,8 @@ void PM_Jump()
 	// In the air now.
 	pmove->onground = -1;
 
-	PM_PreventMegaBunnyJumping();
+	//Remove Bhop Cap
+	//PM_PreventMegaBunnyJumping();
 
 	if (tfc)
 	{
