@@ -36,6 +36,7 @@ DO_PM_SHARED_CC=$(CPLUS) $(INCLUDEDIRS)  $(CFLAGS) $(SHLIBCFLAGS) -o $@ -c $<
 
 HL1_OBJS = \
 	$(HL1_OBJ_DIR)/hud_spectator.o \
+	$(HL1_OBJ_DIR)/hud_speedometer.o \
 	$(HL1_OBJ_DIR)/ev_hldm.o \
 	$(HL1_OBJ_DIR)/hl/hl_baseentity.o \
 	$(HL1_OBJ_DIR)/hl/hl_events.o \

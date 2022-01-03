@@ -90,6 +90,7 @@ struct HUDLIST
 //
 #include "voice_status.h" // base voice handling class
 #include "hud_spectator.h"
+#include "hud_speedometer.h"
 
 
 //
@@ -509,6 +510,7 @@ public:
 
 	int m_iFontHeight;
 	int DrawHudNumber(int x, int y, int iFlags, int iNumber, int r, int g, int b);
+	int DrawHudNumber(int x, int y, int number, int r, int g, int b);
 	int DrawHudString(int x, int y, int iMaxX, const char* szString, int r, int g, int b);
 	int DrawHudStringReverse(int xpos, int ypos, int iMinX, const char* szString, int r, int g, int b);
 	int DrawHudNumberString(int xpos, int ypos, int iMinX, int iNumber, int r, int g, int b);
@@ -570,6 +572,7 @@ public:
 	CHudAmmoSecondary m_AmmoSecondary;
 	CHudTextMessage m_TextMessage;
 	CHudStatusIcons m_StatusIcons;
+	CHudSpeedometer m_Speedometer;
 
 	void Init();
 	void VidInit();
