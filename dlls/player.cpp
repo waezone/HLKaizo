@@ -706,6 +706,9 @@ void CBasePlayer::PackDeadPlayerItems()
 
 void CBasePlayer::RemoveAllItems(bool removeSuit)
 {
+
+	bool hadSuit = HasSuit();
+
 	if (m_pActiveItem)
 	{
 		ResetAutoaim();
@@ -742,7 +745,8 @@ void CBasePlayer::RemoveAllItems(bool removeSuit)
 	m_WeaponBits = 0ULL;
 
 	//Re-add suit bit if needed.
-	SetHasSuit(!removeSuit);
+	if (hadSuit)
+		SetHasSuit(!removeSuit);
 
 	for (i = 0; i < MAX_AMMO_SLOTS; i++)
 		m_rgAmmo[i] = 0;
