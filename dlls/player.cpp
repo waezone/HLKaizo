@@ -707,7 +707,7 @@ void CBasePlayer::PackDeadPlayerItems()
 void CBasePlayer::RemoveAllItems(bool removeSuit)
 {
 
-	bool hadSuit = HasSuit();
+	bool pHadSuit = HasSuit();
 
 	if (m_pActiveItem)
 	{
@@ -732,10 +732,12 @@ void CBasePlayer::RemoveAllItems(bool removeSuit)
 		while (m_pActiveItem)
 		{
 			pPendingItem = m_pActiveItem->m_pNext;
+
 			m_pActiveItem->Drop();
+
 			m_pActiveItem = pPendingItem;
 		}
-		m_rgpPlayerItems[i] = NULL;
+			m_rgpPlayerItems[i] = NULL;
 	}
 	m_pActiveItem = NULL;
 
@@ -745,8 +747,9 @@ void CBasePlayer::RemoveAllItems(bool removeSuit)
 	m_WeaponBits = 0ULL;
 
 	//Re-add suit bit if needed.
-	if (hadSuit)
+	if (pHadSuit)
 		SetHasSuit(!removeSuit);
+
 
 	for (i = 0; i < MAX_AMMO_SLOTS; i++)
 		m_rgAmmo[i] = 0;

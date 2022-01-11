@@ -5,3 +5,4 @@
 !utils/vgui/lib/win32_vc6/vgui.lib
 linux/makeandcopy.sh
 linux/release/
+.vscode/

@@ -645,8 +645,54 @@ void CGamePlayerHurt::Use(CBaseEntity* pActivator, CBaseEntity* pCaller, USE_TYP
 	}
 }
 
+//
+// CGameDidSave / game_did_load_save	-- Counts events and fires target
+// Flag: 
 
+class CGameDidLoadSave : public CRulePointEntity
+{
+public:
+	void Use(CBaseEntity* pActivator, CBaseEntity* pCaller, USE_TYPE useType, float value) override;
+	bool Save(CSave& save) override;
+	bool Restore(CRestore& restore) override;
 
+	static TYPEDESCRIPTION m_SaveData[];
+private:
+	bool m_pDidSave = false;
+};
+LINK_ENTITY_TO_CLASS(game_did_load_save, CGameDidLoadSave);
+
+void CGameDidLoadSave::Use(CBaseEntity* pActivator, CBaseEntity* pCaller, USE_TYPE useType, float value)
+{
+	if (!CanFireForActivator(pActivator))
+		return;
+
+	if (m_pDidSave)
+		SUB_UseTargets(pActivator, USE_TOGGLE, 0);
+}
+
+TYPEDESCRIPTION CGameDidLoadSave::m_SaveData[] =
+{
+
+	DEFINE_FIELD(CGameDidLoadSave, m_pDidSave, FIELD_BOOLEAN),
+
+};
+
+bool CGameDidLoadSave::Save( CSave &save )
+{
+	if ( !CBaseEntity::Save(save) )
+		return 0;
+	return save.WriteFields( "CGameDidLoadSave", this, m_SaveData, ARRAYSIZE(m_SaveData) );
+}
+bool CGameDidLoadSave::Restore( CRestore &restore )
+{
+    if ( !CBaseEntity::Restore(restore) )
+       return 0;
+	auto returnRestore = restore.ReadFields( "CGameDidLoadSave", this, m_SaveData, ARRAYSIZE(m_SaveData) );
+	m_pDidSave = true;
+    return returnRestore;
+
+}
 //
 // CGameCounter / game_counter	-- Counts events and fires target
 // Flag: Fire once
