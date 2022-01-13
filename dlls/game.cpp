@@ -20,6 +20,8 @@
 
 cvar_t displaysoundlist = {"displaysoundlist", "0"};
 
+cvar_t allowusersaves = {"allowusersaves", "0", FCVAR_SERVER};
+
 // multiplayer server rules
 cvar_t fragsleft = {"mp_fragsleft", "0", FCVAR_SERVER | FCVAR_UNLOGGED}; // Don't spam console/log files/users with this changing
 cvar_t timeleft = {"mp_timeleft", "0", FCVAR_SERVER | FCVAR_UNLOGGED};	 // "      "
@@ -470,6 +472,9 @@ void GameDLLInit()
 	}
 
 	CVAR_REGISTER(&displaysoundlist);
+
+	CVAR_REGISTER(&allowusersaves);
+
 	CVAR_REGISTER(&allow_spectators);
 
 	CVAR_REGISTER(&teamplay);

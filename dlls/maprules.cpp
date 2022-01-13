@@ -25,6 +25,7 @@
 #include "extdll.h"
 #include "eiface.h"
 #include "util.h"
+#include "game.h"
 #include "gamerules.h"
 #include "maprules.h"
 #include "cbase.h"
@@ -646,10 +647,10 @@ void CGamePlayerHurt::Use(CBaseEntity* pActivator, CBaseEntity* pCaller, USE_TYP
 }
 
 //
-// CGameDidSave / game_did_load_save	-- Counts events and fires target
+// CGameLoadedSave / game_loaded_save	-- entity that can be fired if the player saved in the level
 // Flag: 
 
-class CGameDidLoadSave : public CRulePointEntity
+class CGameLoadedSave : public CRulePointEntity
 {
 public:
 	void Use(CBaseEntity* pActivator, CBaseEntity* pCaller, USE_TYPE useType, float value) override;
@@ -660,9 +661,9 @@ public:
 private:
 	bool m_pDidSave = false;
 };
-LINK_ENTITY_TO_CLASS(game_did_load_save, CGameDidLoadSave);
+LINK_ENTITY_TO_CLASS(game_loaded_save, CGameLoadedSave);
 
-void CGameDidLoadSave::Use(CBaseEntity* pActivator, CBaseEntity* pCaller, USE_TYPE useType, float value)
+void CGameLoadedSave::Use(CBaseEntity* pActivator, CBaseEntity* pCaller, USE_TYPE useType, float value)
 {
 	if (!CanFireForActivator(pActivator))
 		return;
@@ -671,25 +672,38 @@ void CGameDidLoadSave::Use(CBaseEntity* pActivator, CBaseEntity* pCaller, USE_TY
 		SUB_UseTargets(pActivator, USE_TOGGLE, 0);
 }
 
-TYPEDESCRIPTION CGameDidLoadSave::m_SaveData[] =
+TYPEDESCRIPTION CGameLoadedSave::m_SaveData[] =
 {
 
-	DEFINE_FIELD(CGameDidLoadSave, m_pDidSave, FIELD_BOOLEAN),
+	DEFINE_FIELD(CGameLoadedSave, m_pDidSave, FIELD_BOOLEAN),
 
 };
 
-bool CGameDidLoadSave::Save( CSave &save )
+bool CGameLoadedSave::Save( CSave &save )
 {
 	if ( !CBaseEntity::Save(save) )
 		return 0;
-	return save.WriteFields( "CGameDidLoadSave", this, m_SaveData, ARRAYSIZE(m_SaveData) );
+	return save.WriteFields( "CGameLoadedSave", this, m_SaveData, ARRAYSIZE(m_SaveData) );
 }
-bool CGameDidLoadSave::Restore( CRestore &restore )
+bool CGameLoadedSave::Restore( CRestore &restore )
 {
     if ( !CBaseEntity::Restore(restore) )
        return 0;
-	auto returnRestore = restore.ReadFields( "CGameDidLoadSave", this, m_SaveData, ARRAYSIZE(m_SaveData) );
-	m_pDidSave = true;
+	auto returnRestore = restore.ReadFields( "CGameLoadedSave", this, m_SaveData, ARRAYSIZE(m_SaveData) );
+
+	float allowsaves = CVAR_GET_FLOAT("allowusersaves");
+	float cheats = CVAR_GET_FLOAT("sv_cheats");
+
+	//check if the cvar is set for the player to trigger the ent
+	if (cheats == 1.0 && allowsaves == 1.0)
+	{
+		m_pDidSave = false;
+	}
+	else
+	{
+		m_pDidSave = true;
+	}
+
     return returnRestore;
 
 }
