@@ -25,8 +25,10 @@
 #include "cbase.h"
 #include "player.h"
 #include "saverestore.h"
+#include "filesystem_utils.h"
 #include "trains.h" // trigger_camera has train functionality
 #include "gamerules.h"
+#include <string>
 
 #define SF_TRIGGER_PUSH_START_OFF 2		   //spawnflag that makes trigger_push spawn turned OFF
 #define SF_TRIGGER_HURT_TARGETONCE 1	   // Only fire hurt target once
@@ -1527,6 +1529,23 @@ void CChangeLevel::ChangeLevelNow(CBaseEntity* pActivator)
 	}
 	//	ALERT( at_console, "Level touches %d levels\n", ChangeList( levels, 16 ) );
 	ALERT(at_console, "CHANGE LEVEL: %s %s\n", st_szNextMap, st_szNextSpot);
+
+	for (int i = 0; i < 256; i++)
+	{
+
+		std::string m_sResetstr = g_ResetLevels[i];
+		std::string m_sNextLevel = st_szNextMap;
+
+		if (m_sResetstr == m_sNextLevel)
+		{
+			g_pFileSystem->RemoveFile(std::string("SAVE/" + m_sResetstr + ".HL1").c_str(), "GAMECONFIG");
+			g_pFileSystem->RemoveFile(std::string("SAVE/" + m_sResetstr + ".HL2").c_str(), "GAMECONFIG");
+			g_pFileSystem->RemoveFile(std::string("SAVE/" + m_sResetstr + ".HL3").c_str(), "GAMECONFIG");
+
+			ALERT(at_console, "##########\nFound %s attempting to remove...\n##########\n", g_ResetLevels[i]);
+		} 
+	}
+
 	CHANGE_LEVEL(st_szNextMap, st_szNextSpot);
 }
 

@@ -159,6 +159,8 @@ public:
 
 	// Immediately end a multiplayer game
 	virtual void EndMultiplayerGame() {}
+
+	void LoadLevelResetFile();
 };
 
 extern CGameRules* InstallGameRules();
@@ -364,3 +366,4 @@ protected:
 inline DLL_GLOBAL CGameRules* g_pGameRules = nullptr;
 inline DLL_GLOBAL bool g_fGameOver;
 inline bool g_teamplay = false;
+inline char g_ResetLevels[256][32];
