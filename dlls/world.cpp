@@ -497,8 +497,6 @@ void CWorld::Precache()
 
 	g_pGameRules = InstallGameRules();
 
-	g_pGameRules->LoadLevelResetFile();
-
 	//!!!UNDONE why is there so much Spawn code in the Precache function? I'll just keep it here
 
 	///!!!LATER - do we want a sound ent in deathmatch? (sjb)

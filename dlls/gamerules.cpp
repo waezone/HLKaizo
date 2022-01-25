@@ -294,29 +294,6 @@ void CGameRules::RefreshSkillData()
 	gSkillData.plrArm = GetSkillCvar("sk_player_arm");
 }
 
-
-void CGameRules::LoadLevelResetFile()
-{
-
-	if (!g_pFileSystem->FileExists("levelreset.txt"))
-	{
-		ALERT(at_console, "Could not find level reset file!");
-		return;
-	}
-
-	FileHandle_t file = g_pFileSystem->Open("levelreset.txt", "r", "GAMECONFIG");
-
-	char buffer[32];
-	if (g_pFileSystem->IsOk(file))
-	{
-		for (int i = 0; i < 256 && g_pFileSystem->ReadLine(buffer, sizeof(buffer), file); ++i)
-		{
-			buffer[strcspn(buffer, "\n")] = '\0'; //remove new line
-			strcpy(g_ResetLevels[i], buffer);
-		}
-	}
-}
-
 //=========================================================
 // instantiate the proper game rules object
 //=========================================================

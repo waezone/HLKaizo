@@ -1334,6 +1334,7 @@ void CFireAndDie::Think()
 
 
 #define SF_CHANGELEVEL_USEONLY 0x0002
+#define SF_CHANGELEVEL_RESET 0x0004
 class CChangeLevel : public CBaseTrigger
 {
 public:
@@ -1359,6 +1360,8 @@ public:
 	char m_szLandmarkName[cchMapNameMost]; // trigger_changelevel only:  landmark on next map
 	int m_changeTarget;
 	float m_changeTargetDelay;
+
+	bool m_resetLevel = false;
 };
 LINK_ENTITY_TO_CLASS(trigger_changelevel, CChangeLevel);
 
@@ -1369,6 +1372,7 @@ TYPEDESCRIPTION CChangeLevel::m_SaveData[] =
 		DEFINE_ARRAY(CChangeLevel, m_szLandmarkName, FIELD_CHARACTER, cchMapNameMost),
 		DEFINE_FIELD(CChangeLevel, m_changeTarget, FIELD_STRING),
 		DEFINE_FIELD(CChangeLevel, m_changeTargetDelay, FIELD_FLOAT),
+		DEFINE_FIELD(CChangeLevel, m_resetLevel, FIELD_BOOLEAN),
 };
 
 IMPLEMENT_SAVERESTORE(CChangeLevel, CBaseTrigger);
@@ -1427,6 +1431,9 @@ void CChangeLevel::Spawn()
 	InitTrigger();
 	if ((pev->spawnflags & SF_CHANGELEVEL_USEONLY) == 0)
 		SetTouch(&CChangeLevel::TouchChangeLevel);
+
+	if ((pev->spawnflags & SF_CHANGELEVEL_RESET) != 0)
+		m_resetLevel = true;
 	//	ALERT( at_console, "TRANSITION: %s (%s)\n", m_szMapName, m_szLandmarkName );
 }
 
@@ -1530,20 +1537,13 @@ void CChangeLevel::ChangeLevelNow(CBaseEntity* pActivator)
 	//	ALERT( at_console, "Level touches %d levels\n", ChangeList( levels, 16 ) );
 	ALERT(at_console, "CHANGE LEVEL: %s %s\n", st_szNextMap, st_szNextSpot);
 
-	for (int i = 0; i < 256; i++)
+	if (m_resetLevel)
 	{
+		g_pFileSystem->RemoveFile(std::string("SAVE/" + std::string(st_szNextMap) + ".HL1").c_str(), "GAMECONFIG");
+		g_pFileSystem->RemoveFile(std::string("SAVE/" + std::string(st_szNextMap) + ".HL2").c_str(), "GAMECONFIG");
+		g_pFileSystem->RemoveFile(std::string("SAVE/" + std::string(st_szNextMap) + ".HL3").c_str(), "GAMECONFIG");
 
-		std::string m_sResetstr = g_ResetLevels[i];
-		std::string m_sNextLevel = st_szNextMap;
-
-		if (m_sResetstr == m_sNextLevel)
-		{
-			g_pFileSystem->RemoveFile(std::string("SAVE/" + m_sResetstr + ".HL1").c_str(), "GAMECONFIG");
-			g_pFileSystem->RemoveFile(std::string("SAVE/" + m_sResetstr + ".HL2").c_str(), "GAMECONFIG");
-			g_pFileSystem->RemoveFile(std::string("SAVE/" + m_sResetstr + ".HL3").c_str(), "GAMECONFIG");
-
-			ALERT(at_console, "##########\nFound %s attempting to remove...\n##########\n", g_ResetLevels[i]);
-		} 
+		ALERT(at_console, "##########\nFound %s attempting to remove...\n##########\n", st_szNextMap);
 	}
 
 	CHANGE_LEVEL(st_szNextMap, st_szNextSpot);

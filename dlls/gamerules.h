@@ -160,7 +160,6 @@ public:
 	// Immediately end a multiplayer game
 	virtual void EndMultiplayerGame() {}
 
-	void LoadLevelResetFile();
 };
 
 extern CGameRules* InstallGameRules();
