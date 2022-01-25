@@ -24,7 +24,7 @@ INCLUDEDIRS=-I$(HL_SRC_DIR) -I$(HL_PARTICLEMAN_DIR) -I../dlls -I$(COMMON_SRC_DIR
 ifeq ($(OS),Darwin)
 	LDFLAGS=$(SHLIBLDFLAGS) $(CPP_LIB) -framework Carbon $(CFG)/vgui.dylib -L. -lSDL2-2.0.0
 else
-	LDFLAGS=$(SHLIBLDFLAGS) $(CPP_LIB)  -L$(CFG) vgui.so -L. libSDL2-2.0.so.0
+	LDFLAGS=$(SHLIBLDFLAGS) $(CPP_LIB)  -L$(CFG) vgui.so -L. libSDL2-2.0.so.0 -L. libfmodex.so
 endif
 
 DO_CC=$(CPLUS) $(INCLUDEDIRS) $(CFLAGS) -o $@ -c $<
@@ -56,6 +56,7 @@ HL1_OBJS = \
 	$(HL1_OBJ_DIR)/ev_common.o \
 	$(HL1_OBJ_DIR)/events.o \
 	$(HL1_OBJ_DIR)/flashlight.o \
+	$(HL1_OBJ_DIR)/fmod_manager.o \
 	$(HL1_OBJ_DIR)/GameStudioModelRenderer.o \
 	$(HL1_OBJ_DIR)/geiger.o \
 	$(HL1_OBJ_DIR)/health.o \
