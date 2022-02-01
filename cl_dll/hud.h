@@ -480,6 +480,7 @@ private:
 //-----------------------------------------------------
 //
 
+#include "fmod_manager.h"
 
 class CHud
 {
@@ -573,6 +574,7 @@ public:
 	CHudTextMessage m_TextMessage;
 	CHudStatusIcons m_StatusIcons;
 	CHudSpeedometer m_Speedometer;
+	CFMODManager m_FMODManager;
 
 	void Init();
 	void VidInit();

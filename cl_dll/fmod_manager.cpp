@@ -1,25 +1,38 @@
+#include "stdio.h"
+#include "stdlib.h"
+
 #include "hud.h"
 #include "cl_util.h"
-#include "const.h"
-#include "entity_types.h"
-#include "studio_event.h" // def. of mstudioevent_t
-#include "r_efx.h"
-#include "event_api.h"
-#include "pm_defs.h"
-#include "pmtrace.h"
-#include "pm_shared.h"
-#include "Exports.h"
-#include "filesystem_utils.h"
+#include "parsemsg.h"
 #include "fmod_manager.h"
+#include "fmod/fmod_errors.h"
+#include "filesystem_utils.h"
+
+#include <string>
+#include <vector>
+#include <map>
+
+
 
 using namespace FMOD;
 
 extern cl_enginefunc_t gEngfuncs;
 
+struct SoundContainer
+{
+	Sound *pSound;
+	Channel *pChannel;
+};
+
+
+DECLARE_MESSAGE(m_FMODManager, PlaySound);
+DECLARE_MESSAGE(m_FMODManager, PrecacheSnd);
+DECLARE_MESSAGE(m_FMODManager, ClrSndCache);
+
+std::map<std::string, SoundContainer> TrackList;
+
 System			*pSystem;
-Sound			*pSound;
 SoundGroup		*pSoundGroup;
-Channel			*pChannel;
 ChannelGroup	*pChannelGroup;
 FMOD_RESULT		result;
 
@@ -31,16 +44,19 @@ CFMODManager* FMODManager()
 
 CFMODManager::CFMODManager()
 {
+	m_sGamePath = nullptr;
 	m_fFadeDelay = 0.0;
 	newSoundFileToTransitionTo = "NULL";
 	currentSound = "NULL";
 	m_bShouldTransition = false;
 	m_bFadeIn = false;
 	m_bFadeOut = false;
+	
 }
 
 CFMODManager::~CFMODManager()
 {
+	m_sGamePath = nullptr;
 	m_fFadeDelay = 0.0;
 	newSoundFileToTransitionTo = "NULL";
 	currentSound = "NULL";
@@ -52,193 +68,131 @@ CFMODManager::~CFMODManager()
 // Starts FMOD
 void CFMODManager::InitFMOD( void )
 {
-	result = System_Create( &pSystem ); // Create the main system object.
 
-	// if (result != FMOD_OK)
-	// 	ALERT(at_console, "FMOD ERROR: System creation failed!\n");
-	// else
-	// 	ALERT(at_console, "FMOD system successfully created.\n");
+	HOOK_MESSAGE(PlaySound);
+	HOOK_MESSAGE(PrecacheSnd);
+	HOOK_MESSAGE(ClrSndCache);
+
+	result = System_Create( &pSystem ); // Create the main system object.
+	FMODError(&result);
 
 	result = pSystem->init(100, FMOD_INIT_NORMAL, 0);   // Initialize FMOD system.
+	FMODError(&result);
 
-	// if (result != FMOD_OK)
-	// 	ALERT(at_console, "FMOD ERROR: Failed to initialize properly!\n");
-	// else
-	// 	ALERT(at_console, "FMOD initialized successfully.\n");
+	result = pSystem->createChannelGroup("music", &pChannelGroup);
+	FMODError(&result);
+
+	float volume = CVAR_GET_FLOAT("MP3Volume");
+	result = pChannelGroup->setVolume(volume);
+	FMODError(&result);
+
+	m_sGamePath = gEngfuncs.pfnGetGameDirectory();
 }
 
 // Stops FMOD
 void CFMODManager::ExitFMOD( void )
 {
 	result = pSystem->release();
-
-	// if (result != FMOD_OK)
-	// 	ALERT(at_console, "FMOD ERROR: System did not terminate properly!\n");
-	// else
-	// 	ALERT(at_console, "FMOD system terminated successfully.\n");
+	FMODError(&result);
 }
 
-// Returns the full path of a specified sound file in the /sounds folder
-const char* CFMODManager::GetFullPathToSound( const char* pathToFileFromModFolder )
+//gmsgPlaySound on server dll, plays a sound that has been precached
+bool CFMODManager::MsgFunc_PlaySound(const char* pszName, int iSize, void* pbuf)
 {
-	char* resultpath = new char[512];
-    char* fullpath = new char[512];
+	BEGIN_READ(pbuf, iSize);
+	std::string sound = READ_STRING();
 
-    g_pFileSystem->GetCurrentDirectory(fullpath, 512);
+	bool paused;
+	bool isPlaying;
+	TrackList[sound].pChannel->isPlaying(&isPlaying);
+	TrackList[sound].pChannel->getPaused(&paused);
 
-	snprintf( resultpath, 512, "%s/sound/%s", fullpath, pathToFileFromModFolder );
+	//Return if the sound is already playing
+	if (!paused && isPlaying)
+		return true;
 
-	// convert backwards slashes to forward slashes
-	for ( int i = 0; i < 512; i++ )
-	{
-		if( resultpath[i] == '\\' ) 
-			resultpath[i] = '/';
-	}
+	//Replay the sound if its already played
+	if (!isPlaying)	
+		result = pSystem->playSound(TrackList[sound].pSound, pChannelGroup, true, &TrackList[sound].pChannel);
 
-	return resultpath;
+	//unpause the sound to play it
+	TrackList[sound].pChannel->setPaused(false);
+	FMODError(&result);
+	
+	return true;
 }
 
-// Returns the name of the current ambient sound being played
-// If there is an error getting the name of the ambient sound or if no ambient sound is currently being played, returns "NULL"
-const char* CFMODManager::GetCurrentSoundName( void )
+//gmsgPcacheSnd Precaches a sound
+bool CFMODManager::MsgFunc_PrecacheSnd(const char* pszName, int iSize, void* pbuf)
 {
-	return currentSound;
+	char directory[256];
+	g_pFileSystem->GetCurrentDirectory(directory,256);
+	m_sGamePath = directory;
+	const char *gamefolder = gEngfuncs.pfnGetGameDirectory();
+
+	BEGIN_READ(pbuf, iSize);
+
+	std::string shortPath = READ_STRING();
+	std::string fullPath = m_sGamePath + std::string("/") + gamefolder + std::string("/") + shortPath;
+
+	//Return if the track has already been precached
+	auto it = TrackList.find(shortPath); //returns an iterator to where the element is
+	if (it != TrackList.end()) //if the element isn't at the end it must exist already
+		return true;
+
+	SoundContainer track;
+
+	//createsound caches the sound
+	result = pSystem->createSound(fullPath.c_str(), FMOD_DEFAULT, NULL, &track.pSound);
+	FMODError(&result);
+
+	//set to be able to play but start paused, only play when its needed
+	result = pSystem->playSound(track.pSound, pChannelGroup, true, &track.pChannel);
+	FMODError(&result);
+
+	TrackList.emplace(std::pair<std::string, SoundContainer>(shortPath, track));
+
+	ConsolePrint(std::string("Sound: " + fullPath + " Precached successfully!" + "\n").c_str());
+	char size[64];
+	sprintf(size, "PrecacheBufferSize: %d\n", TrackList.size());
+	ConsolePrint(size);
+
+	return true;
 }
 
-// Handles all fade-related sound stuffs
-// Called every frame when the client is in-game
-void CFMODManager::FadeThink( void )
+bool CFMODManager::MsgFunc_ClrSndCache(const char* pszName, int iSize, void* pbuf)
 {
-	if ( m_bFadeOut )
-	{
-		if ( gEngfuncs.GetClientTime() >= m_fFadeDelay )
-		{
-			float tempvol;
-			pChannel->getVolume( &tempvol );
-
-			if ( tempvol > 0.0 )
-			{
-				pChannel->setVolume( tempvol - 0.05 );
-				m_fFadeDelay = gEngfuncs.GetClientTime() + 0.1;
-			}
-			else
-			{
-				pChannel->setVolume( 0.0 );
-				m_bFadeOut = false;
-				m_fFadeDelay = 0.0;
-			}
-		}
-	}
-	else if ( m_bShouldTransition )
-	{
-		result = pSystem->createStream( GetFullPathToSound( newSoundFileToTransitionTo ), FMOD_DEFAULT, 0, &pSound );
-
-		if (result != FMOD_OK)
-		{
-			//ALERT(at_console, "FMOD: Failed to create stream of sound '%s' ! (ERROR NUMBER: %i)\n", newSoundFileToTransitionTo, result);
-			newSoundFileToTransitionTo = "NULL";
-			m_bShouldTransition = false;
-			return;
-		}
-
-		result = pSystem->playSound( FMOD_CHANNEL_REUSE, pSound, false, &pChannel);
-
-		if (result != FMOD_OK)
-		{
-			//ALERT(at_console, "FMOD: Failed to play sound '%s' ! (ERROR NUMBER: %i)\n", newSoundFileToTransitionTo, result);
-			newSoundFileToTransitionTo = "NULL";
-			m_bShouldTransition = false;
-			return;
-		}
-
-		currentSound = newSoundFileToTransitionTo;
-		newSoundFileToTransitionTo = "NULL";
-		m_bShouldTransition = false;
-	}
-	else if ( m_bFadeIn )
-	{
-		if ( gEngfuncs.GetClientTime()  >= m_fFadeDelay )
-		{
-			float tempvol;
-			pChannel->getVolume( &tempvol );
-
-			if ( tempvol < 1.0 )
-			{
-				pChannel->setVolume( tempvol + 0.05 );
-				m_fFadeDelay = gEngfuncs.GetClientTime()  + 0.1;
-			}
-			else
-			{
-				pChannel->setVolume( 1.0 );
-				m_bFadeIn = false;
-				m_fFadeDelay = 0.0;
-			}
-		}
-	}
+	TrackList.clear();
+	return true;
 }
 
-// Compares specified ambient sound with the current ambient sound being played
-// Returns true if they match, false if they do not or if no sound is being played
-bool CFMODManager::IsSoundPlaying( const char* pathToFileFromSoundsFolder )
+void CFMODManager::Think(struct ref_params_s* pparams)
 {
-	const char* currentSoundPlaying = GetCurrentSoundName();
 
-	return strcmp(currentSoundPlaying, pathToFileFromSoundsFolder) == 0;
-}
+	float volume = CVAR_GET_FLOAT("MP3Volume");
+	
+	pChannelGroup->setVolume(volume);
 
-// Abruptly starts playing a specified ambient sound
-// In most cases, we'll want to use TransitionAmbientSounds instead
-void CFMODManager::PlayAmbientSound( const char* pathToFileFromSoundsFolder, bool fadeIn )
-{
-	result = pSystem->createStream( GetFullPathToSound( pathToFileFromSoundsFolder ), FMOD_DEFAULT, 0, &pSound );
-
-	if (result != FMOD_OK)
-	{
-		//ALERT(at_console, "FMOD: Failed to create stream of sound '%s' ! (ERROR NUMBER: %i)\n", pathToFileFromSoundsFolder, result);
-		return;
-	}
-
-	result = pSystem->playSound( FMOD_CHANNEL_REUSE, pSound, false, &pChannel);
-
-	if (result != FMOD_OK)
-	{
-		//ALERT(at_console, "FMOD: Failed to play sound '%s' ! (ERROR NUMBER: %i)\n", pathToFileFromSoundsFolder, result);
-		return;
-	}
-
-	if ( fadeIn )
-	{
-		pChannel->setVolume( 0.0 );
-		m_bFadeIn = true;
-	}
-
-	currentSound = pathToFileFromSoundsFolder;
-}
-
-// Abruptly stops playing all ambient sounds
-void CFMODManager::StopAmbientSound( bool fadeOut )
-{
-	if ( fadeOut )
-	{
-		pChannel->setVolume( 1.0 );
-		m_bFadeOut = true;
-	}
+	//pause the music when the menu is showing
+	if (pparams->paused)
+		pChannelGroup->setPaused(true);
 	else
-	{
-		pChannel->setVolume( 0.0 );
-	}
+		pChannelGroup->setPaused(false);
 
-	currentSound = "NULL";
+	result = pSystem->update();
+	if (result != FMOD_OK)
+		ConsolePrint("Error Updating FMOD");
 }
 
-// Transitions between two ambient sounds if necessary
-// If a sound isn't already playing when this is called, don't worry about it
-void CFMODManager::TransitionAmbientSounds( const char* pathToFileFromSoundsFolder )
+bool CFMODManager::FMODError(FMOD_RESULT *result)
 {
-	pChannel->setVolume( 1.0 );
-	newSoundFileToTransitionTo = pathToFileFromSoundsFolder;
-
-	m_bFadeOut = true;
-	m_bShouldTransition = true;
-	m_bFadeIn = true;
+	if (*result != FMOD_OK)
+    {
+        std::string fmod_error_str = FMOD_ErrorString(*result);
+        std::string error_msg = "FMOD ERROR: " + *result + fmod_error_str + "\n";
+        fprintf(stderr, error_msg.c_str());
+        ConsolePrint(error_msg.c_str());
+        return false;
+    }
+	return true;
 }

@@ -33,6 +33,7 @@
 #include "weapons.h"
 #include "gamerules.h"
 #include "teamplay_gamerules.h"
+#include "triggermusic.h"
 
 CGlobalState gGlobalState;
 
@@ -509,6 +510,8 @@ void CWorld::Precache()
 		ALERT(at_console, "**COULD NOT CREATE SOUNDENT**\n");
 	}
 
+	g_trackprecache.clear();
+
 	InitBodyQue();
 
 	// init sentence group playback stuff from sentences.txt.
@@ -660,7 +663,7 @@ void CWorld::Precache()
 	else
 	{
 		CVAR_SET_FLOAT("mp_defaultteam", 0);
-	}
+	}	
 }
 
 

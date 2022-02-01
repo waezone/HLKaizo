@@ -4,6 +4,7 @@
 !utils/procinfo/lib/win32_vc6/procinfo.lib
 !utils/vgui/lib/win32_vc6/vgui.lib
 linux/makeandcopy.sh
+linux/launch.mk
 linux/release/
 linux/debug/
 .vscode/

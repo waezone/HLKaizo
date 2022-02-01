@@ -39,6 +39,7 @@
 #include "usercmd.h"
 #include "netadr.h"
 #include "pm_shared.h"
+#include "triggermusic.h"
 #include "UserMessages.h"
 
 DLL_GLOBAL unsigned int g_ulFrameCount;
@@ -192,6 +193,7 @@ called each time a player is spawned
 */
 void ClientPutInServer(edict_t* pEntity)
 {
+
 	CBasePlayer* pPlayer;
 
 	entvars_t* pev = &pEntity->v;
@@ -207,6 +209,7 @@ void ClientPutInServer(edict_t* pEntity)
 
 	pPlayer->pev->iuser1 = 0; // disable any spec modes
 	pPlayer->pev->iuser2 = 0;
+
 }
 
 #include "voice_gamemgr.h"
@@ -618,7 +621,6 @@ void ClientUserInfoChanged(edict_t* pEntity, char* infobuffer)
 	// Is the client spawned yet?
 	if (!pEntity->pvPrivateData)
 		return;
-
 	// msg everyone if someone changes their name,  and it isn't the first time (changing no name to current name)
 	if (!FStringNull(pEntity->v.netname) && STRING(pEntity->v.netname)[0] != 0 && !FStrEq(STRING(pEntity->v.netname), g_engfuncs.pfnInfoKeyValue(infobuffer, "name")))
 	{
@@ -788,7 +790,6 @@ void StartFrame()
 	g_ulFrameCount++;
 }
 
-
 void ClientPrecache()
 {
 	// setup precaches always needed
@@ -902,6 +903,7 @@ void ClientPrecache()
 
 	if (giPrecacheGrunt)
 		UTIL_PrecacheOther("monster_human_grunt");
+
 }
 
 /*

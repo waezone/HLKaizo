@@ -40,6 +40,7 @@
 #include "hltv.h"
 #include "UserMessages.h"
 #include "client.h"
+#include "triggermusic.h"
 
 // #define DUCKFIX
 
@@ -2865,7 +2866,11 @@ void CBasePlayer::Spawn()
 
 	m_flNextChatTime = gpGlobals->time;
 
+	m_bTracksPrecached = false;
+
 	g_pGameRules->PlayerSpawn(this);
+
+	ALERT(at_console, "PLAYER SPAWN CALLED\n");
 }
 
 
@@ -2887,6 +2892,7 @@ void CBasePlayer::Precache()
 
 	m_iTrain |= TRAIN_NEW;
 
+
 	// Make sure any necessary user messages have been registered
 	LinkUserMessages();
 
@@ -2894,6 +2900,7 @@ void CBasePlayer::Precache()
 
 	if (gInitHUD)
 		m_fInitHUD = true;
+
 }
 
 
@@ -3800,6 +3807,7 @@ void CBasePlayer::SendAmmoUpdate()
 	}
 }
 
+std::vector<std::string> g_trackprecache;
 /*
 =========================================================
 	UpdateClientData
@@ -4090,6 +4098,20 @@ void CBasePlayer::UpdateClientData()
 
 	//Handled anything that needs resetting
 	m_bRestored = false;
+
+	//Tell the client what tracks to precache
+	if (!m_bTracksPrecached)
+	{
+		ALERT(at_console, "ATTEMPTING PRECACHE\n");
+		for (int i = 0; i < g_trackprecache.size(); i++)
+		{
+			
+			MESSAGE_BEGIN(MSG_ONE, gmsgPrecacheSnd, NULL, pev);
+			WRITE_STRING(g_trackprecache[i].c_str());
+			MESSAGE_END();
+		}
+		m_bTracksPrecached = true;
+	}
 }
 
 

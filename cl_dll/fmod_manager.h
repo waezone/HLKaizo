@@ -3,10 +3,12 @@
 #ifdef _WIN32
 #pragma once
 #endif
+#include "ref_params.h"
 
 #include "fmod/fmod.hpp"
+#include <string>
 
-class CFMODManager
+class CFMODManager : public CHudBase
 {
 public:
 	CFMODManager();
@@ -21,12 +23,23 @@ public:
 
 	void PlayAmbientSound( const char* pathToFileFromSoundsFolder, bool fadeIn );
 	void StopAmbientSound( bool fadeOut );
+
+	bool MsgFunc_PlaySound(const char* pszName, int iSize, void* pbuf);
+	bool MsgFunc_PrecacheSnd(const char* pszName, int iSize, void* pbuf);
+	bool MsgFunc_ClrSndCache(const char* pszName, int iSize, void* pbuf);
+
+	void Think(struct ref_params_s* pparams);
+
 	void TransitionAmbientSounds( const char* pathToFileFromSoundsFolder );
 
 private:
 	const char* GetFullPathToSound( const char* pathToFileFromModFolder );
 	const char* GetCurrentSoundName( void );
+	void SetGamePath();
 
+	bool FMODError(FMOD_RESULT *result);
+
+	const char* m_sGamePath;
 	const char* currentSound;
 	const char* newSoundFileToTransitionTo;
 	bool m_bShouldTransition;

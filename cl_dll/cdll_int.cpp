@@ -36,6 +36,7 @@
 #include "vgui_TeamFortressViewport.h"
 #include "filesystem_utils.h"
 #include "fmod_manager.h"
+//#include "fmod_manager.h"
 
 cl_enginefunc_t gEngfuncs;
 CHud gHUD;
@@ -145,8 +146,7 @@ int DLLEXPORT Initialize(cl_enginefunc_t* pEnginefuncs, int iVersion)
 
 	EV_HookEvents();
 	CL_LoadParticleMan();
-
-
+	FMODManager()->InitFMOD();
 
 	if (!FileSystem_LoadFileSystem())
 	{
@@ -156,7 +156,6 @@ int DLLEXPORT Initialize(cl_enginefunc_t* pEnginefuncs, int iVersion)
 	// get tracker interface, if any
 	return 1;
 }
-
 
 /*
 ==========================

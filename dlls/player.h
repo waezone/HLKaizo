@@ -340,6 +340,7 @@ public:
 	int m_iAutoWepSwitch;
 
 	bool m_bRestored;
+	bool m_bTracksPrecached;
 };
 
 inline void CBasePlayer::SetWeaponBit(int id)
