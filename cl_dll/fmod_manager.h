@@ -39,7 +39,6 @@ private:
 
 	bool FMODError(FMOD_RESULT *result);
 
-	const char* m_sGamePath;
 	const char* currentSound;
 	const char* newSoundFileToTransitionTo;
 	bool m_bShouldTransition;

@@ -146,13 +146,14 @@ int DLLEXPORT Initialize(cl_enginefunc_t* pEnginefuncs, int iVersion)
 
 	EV_HookEvents();
 	CL_LoadParticleMan();
-	FMODManager()->InitFMOD();
+
 
 	if (!FileSystem_LoadFileSystem())
 	{
 		return 0;
 	}
 
+	FMODManager()->InitFMOD();
 	// get tracker interface, if any
 	return 1;
 }

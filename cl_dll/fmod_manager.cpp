@@ -44,7 +44,6 @@ CFMODManager* FMODManager()
 
 CFMODManager::CFMODManager()
 {
-	m_sGamePath = nullptr;
 	m_fFadeDelay = 0.0;
 	newSoundFileToTransitionTo = "NULL";
 	currentSound = "NULL";
@@ -56,7 +55,6 @@ CFMODManager::CFMODManager()
 
 CFMODManager::~CFMODManager()
 {
-	m_sGamePath = nullptr;
 	m_fFadeDelay = 0.0;
 	newSoundFileToTransitionTo = "NULL";
 	currentSound = "NULL";
@@ -85,8 +83,6 @@ void CFMODManager::InitFMOD( void )
 	float volume = CVAR_GET_FLOAT("MP3Volume");
 	result = pChannelGroup->setVolume(volume);
 	FMODError(&result);
-
-	m_sGamePath = gEngfuncs.pfnGetGameDirectory();
 }
 
 // Stops FMOD
@@ -107,11 +103,11 @@ bool CFMODManager::MsgFunc_PlaySound(const char* pszName, int iSize, void* pbuf)
 	TrackList[sound].pChannel->isPlaying(&isPlaying);
 	TrackList[sound].pChannel->getPaused(&paused);
 
-	//Return if the sound is already playing
+	//return if the sound is already playing
 	if (!paused && isPlaying)
 		return true;
 
-	//Replay the sound if its already played
+	//replay the sound if its already played
 	if (!isPlaying)	
 		result = pSystem->playSound(TrackList[sound].pSound, pChannelGroup, true, &TrackList[sound].pChannel);
 
@@ -122,18 +118,22 @@ bool CFMODManager::MsgFunc_PlaySound(const char* pszName, int iSize, void* pbuf)
 	return true;
 }
 
-//gmsgPcacheSnd Precaches a sound
+//gmsgPcacheSnd on server dll, precaches a sound
 bool CFMODManager::MsgFunc_PrecacheSnd(const char* pszName, int iSize, void* pbuf)
 {
-	char directory[256];
+	//setup full path to the mod folder for easy use
+	char directory[128];
 	g_pFileSystem->GetCurrentDirectory(directory,256);
-	m_sGamePath = directory;
-	const char *gamefolder = gEngfuncs.pfnGetGameDirectory();
+	const char* gamefolder = gEngfuncs.pfnGetGameDirectory();
+	char path[128];
+
+	sprintf(path, "%s/%s/", directory, gamefolder);
 
 	BEGIN_READ(pbuf, iSize);
 
 	std::string shortPath = READ_STRING();
-	std::string fullPath = m_sGamePath + std::string("/") + gamefolder + std::string("/") + shortPath;
+	std::string fullPath = path + shortPath;
+
 
 	//Return if the track has already been precached
 	auto it = TrackList.find(shortPath); //returns an iterator to where the element is
@@ -146,7 +146,7 @@ bool CFMODManager::MsgFunc_PrecacheSnd(const char* pszName, int iSize, void* pbu
 	result = pSystem->createSound(fullPath.c_str(), FMOD_DEFAULT, NULL, &track.pSound);
 	FMODError(&result);
 
-	//set to be able to play but start paused, only play when its needed
+	//set to be able to play but start paused, only unpause when its needed
 	result = pSystem->playSound(track.pSound, pChannelGroup, true, &track.pChannel);
 	FMODError(&result);
 
@@ -168,12 +168,11 @@ bool CFMODManager::MsgFunc_ClrSndCache(const char* pszName, int iSize, void* pbu
 
 void CFMODManager::Think(struct ref_params_s* pparams)
 {
-
 	float volume = CVAR_GET_FLOAT("MP3Volume");
 	
 	pChannelGroup->setVolume(volume);
 
-	//pause the music when the menu is showing
+	//pause the music when the server is paused
 	if (pparams->paused)
 		pChannelGroup->setPaused(true);
 	else
